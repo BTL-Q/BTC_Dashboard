@@ -1,0 +1,15 @@
+# 시간봉은 21MB짜리 바이너리라 동봉하지 않는다 (실행 시 Upbit API로 수집)
+data/ohlcv/*/1h.parquet
+data/ohlcv/*/1m.parquet
+data/ohlcv/*/5m.parquet
+data/ohlcv/*/15m.parquet
+data/ohlcv/*/30m.parquet
+data/ohlcv/*/4h.parquet
+data/ohlcv/*/1w.parquet
+
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.streamlit/secrets.toml
+.DS_Store
