@@ -48,6 +48,7 @@ st.set_page_config(
     page_title="코인 영향력",
     page_icon="🧲",
     layout="wide",
+    initial_sidebar_state="collapsed",
 )
 
 st.title("🧲 코인 영향력 분석")

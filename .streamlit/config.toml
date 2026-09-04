@@ -1,0 +1,10 @@
+# 테마를 고정한다.
+#   app.py 가 st.get_option("theme.base") 로 팔레트(라이트/다크)를 고르기 때문에,
+#   여기서 못 박지 않으면 브라우저 설정에 따라 UI는 다크인데 팔레트는 라이트가
+#   깔리는 불일치가 생긴다.
+[theme]
+base = "dark"
+
+[client]
+# 우상단 Deploy 버튼 숨김
+toolbarMode = "minimal"

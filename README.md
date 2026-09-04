@@ -6,6 +6,14 @@
 ![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=flat-square&logo=streamlit&logoColor=white)
 ![Plotly](https://img.shields.io/badge/Plotly-3F4F75?style=flat-square&logo=plotly&logoColor=white)
 
+
+<p align="center">
+  <img src="docs/screenshot.png" alt="코인 영향력 분석 대시보드" width="100%">
+</p>
+<p align="center">
+  <sub>기준 코인을 BTC로 놓았을 때 — ETH는 움직임의 75%가 BTC로 설명되고, SUI는 β 1.48로 가장 크게 증폭된다.</sub>
+</p>
+
 ---
 
 ## 무엇을 재는가
