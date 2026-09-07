@@ -60,3 +60,9 @@ BARS_PER_YEAR: dict[str, float] = {
 UPBIT_BASE_URL = "https://api.upbit.com/v1"
 UPBIT_MAX_COUNT = 200          # 요청당 최대 캔들 수
 UPBIT_RATE_LIMIT_SEC = 0.15    # 요청 간 최소 간격
+
+# 한 번에 받아올 최대 봉 수.
+# 요청당 200봉이라 8,760봉이면 코인 하나에 44회. 9개 코인이면 396회다.
+# 그래서 받은 것은 parquet으로 저장해 두 번째부터는 API를 치지 않는다
+# (동봉하지 않는 타임프레임이므로 .gitignore 에 걸려 저장소는 커지지 않는다).
+UPBIT_MAX_FETCH_BARS = 20_000

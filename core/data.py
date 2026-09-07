@@ -18,6 +18,7 @@ import requests
 
 from core.config import (
     OHLCV_DIR,
+    UPBIT_MAX_FETCH_BARS,
     TIMEFRAMES,
     UPBIT_BASE_URL,
     UPBIT_MAX_COUNT,
@@ -120,9 +121,39 @@ def fetch_upbit(market: str, timeframe: str, bars: int = 1000) -> pd.DataFrame:
     return out[~out.index.duplicated(keep="last")]
 
 
-def load_ohlcv(market: str, timeframe: str, bars: int = 1000) -> pd.DataFrame:
-    """동봉 parquet 우선, 없으면 Upbit API."""
-    df = load_local(market, timeframe)
-    if not df.empty:
-        return df
-    return fetch_upbit(market, timeframe, bars=bars)
+def save_local(market: str, timeframe: str, df: pd.DataFrame) -> None:
+    """받아온 캔들을 parquet으로 남긴다.
+
+    동봉하지 않는 타임프레임(1h 등)은 .gitignore 에 걸려 있어
+    저장소 크기에 영향을 주지 않으면서 다음 실행부터 API를 치지 않게 해 준다.
+    """
+    path = ohlcv_path(market, timeframe)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        df.to_parquet(path)
+    except Exception:
+        pass  # 저장 실패는 조회를 막지 않는다
+
+
+def load_ohlcv(market: str, timeframe: str, bars: int | None = None) -> pd.DataFrame:
+    """로컬 parquet 우선. 부족하면 Upbit에서 채우고 저장한다.
+
+    bars 는 "이만큼은 있어야 한다"는 요청량이다. 로컬이 그만큼 가지고 있으면
+    API를 치지 않는다.
+    """
+    want = min(bars or 1000, UPBIT_MAX_FETCH_BARS)
+    local = load_local(market, timeframe)
+    if not local.empty and len(local) >= want:
+        return local
+
+    fetched = fetch_upbit(market, timeframe, bars=want)
+    if fetched.empty:
+        return local  # API 실패 — 있는 만큼이라도 돌려준다
+
+    if not local.empty:
+        fetched = pd.concat([local, fetched]).sort_index()
+        fetched = fetched[~fetched.index.duplicated(keep="last")]
+
+    if timeframe not in ("1d",):  # 동봉된 일봉은 덮어쓰지 않는다
+        save_local(market, timeframe, fetched)
+    return fetched

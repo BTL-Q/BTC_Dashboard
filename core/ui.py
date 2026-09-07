@@ -19,10 +19,14 @@ from core.config import (
     BUNDLED_TIMEFRAMES,
     DEFAULT_COINS,
     OHLCV_DIR,
+    UPBIT_MAX_FETCH_BARS,
 )
 from core.data import load_ohlcv
 from core.stats import market_model
 from core.theme import CARD_CSS, short
+
+# 타임프레임별 하루치 봉 수 — 기간 선택에서 필요한 봉 수를 역산할 때 쓴다.
+BARS_PER_DAY: dict[str, int] = {"1d": 1, "1h": 24}
 
 PERIODS: dict[str, int | None] = {
     "전체": None,
@@ -76,18 +80,19 @@ class Context:
 
 
 @st.cache_data(show_spinner=False)
-def _load_close(market: str, timeframe: str) -> pd.Series:
-    df = load_ohlcv(market, timeframe)
+def _load_close(market: str, timeframe: str, bars: int) -> pd.Series:
+    df = load_ohlcv(market, timeframe, bars=bars)
     if df.empty:
         return pd.Series(dtype=float)
     return df["close"].astype(float)
 
 
 @st.cache_data(show_spinner=False)
-def _build_returns(markets: tuple[str, ...], timeframe: str, use_log: bool) -> pd.DataFrame:
+def _build_returns(markets: tuple[str, ...], timeframe: str, use_log: bool,
+                   bars: int) -> pd.DataFrame:
     closes = {}
     for m in markets:
-        s = _load_close(m, timeframe)
+        s = _load_close(m, timeframe, bars)
         if not s.empty:
             closes[m] = s
     if not closes:
@@ -138,7 +143,18 @@ def load_context() -> Context:
     use_log = ret_kind == "로그"
     bars_per_year = BARS_PER_YEAR[timeframe]
 
-    rets_all = _build_returns(tuple(DEFAULT_COINS), timeframe, use_log)
+    # 고른 기간을 채우는 데 필요한 봉 수를 역산한다.
+    # 로컬에 그만큼 있으면 API를 치지 않고, 없으면 받아와서 parquet으로 남긴다.
+    req_days = PERIODS[period_label]
+    if req_days is None:
+        need_bars = UPBIT_MAX_FETCH_BARS
+    else:
+        need_bars = int(req_days * BARS_PER_DAY.get(timeframe, 1) * 1.05) + 50
+
+    spinner_msg = (f"{timeframe} 데이터를 Upbit에서 받는 중… "
+                   f"(처음 한 번만 걸립니다. 이후에는 로컬에 저장된 것을 씁니다)")
+    with st.spinner(spinner_msg):
+        rets_all = _build_returns(tuple(DEFAULT_COINS), timeframe, use_log, need_bars)
 
     if rets_all.empty or market not in rets_all.columns:
         if timeframe in BUNDLED_TIMEFRAMES:
@@ -163,6 +179,14 @@ def load_context() -> Context:
         st.warning("표본이 30봉 미만입니다. 기간을 늘리거나 '공통 구간'을 끄세요.")
         st.stop()
 
+    # 고른 기간을 실제로 채우지 못했으면 반드시 알린다.
+    # 예전에는 "최근 1년"을 골라도 1,000봉(42일)만 분석되면서 화면에 아무 표시가 없었다.
+    shortfall = None
+    if req_days is not None:
+        actual_days = (rets.index.max() - rets.index.min()).days
+        if actual_days < req_days * 0.9:
+            shortfall = (req_days, actual_days)
+
     results: dict[str, dict] = {}
     for m in alts:
         if m not in rets.columns:
@@ -180,6 +204,15 @@ def load_context() -> Context:
 
     table = pd.DataFrame(results).T
     table.index.name = "market"
+
+    if shortfall:
+        req_d, act_d = shortfall
+        st.warning(
+            f"**'{period_label}'을 골랐지만 실제로는 {act_d}일치만 분석됩니다.** "
+            f"({rets.index.min().date()} ~ {rets.index.max().date()}, {len(rets):,}봉)\n\n"
+            f"{timeframe} 데이터가 요청한 {req_d}일을 채우지 못했습니다. "
+            "표본이 짧으면 우연히 유의한 결과가 나오기 쉬우니 숫자를 그대로 믿지 마세요."
+        )
 
     # 사이드바 하단에 현재 슬라이스 요약
     with st.sidebar:
