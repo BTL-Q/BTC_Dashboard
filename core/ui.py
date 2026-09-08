@@ -171,7 +171,16 @@ def load_context() -> Context:
 
     data_start, data_end = rets_all.index.min(), rets_all.index.max()
     days = PERIODS[period_label]
-    window_start = data_start if days is None else data_end - pd.Timedelta(days=days)
+    if days is None:
+        window_start = data_start
+    else:
+        # Include exactly the requested number of return bars.  The old
+        # inclusive date window selected one extra observation at both 1d and 1h.
+        bars_per_day = BARS_PER_DAY[timeframe]
+        period_bars = days * bars_per_day
+        window_start = data_end - pd.Timedelta(
+            days=(period_bars - 1) / bars_per_day,
+        )
     rets = rets_all[rets_all.index >= window_start]
     rets = rets.dropna(how="any") if common_span else rets.dropna(subset=[market])
 
@@ -235,8 +244,15 @@ def load_context() -> Context:
 
 def page_header(title: str, subtitle: str, ctx: Context) -> None:
     """페이지 제목 + 현재 설정 한 줄."""
-    st.title(title)
+    title_col, market_col = st.columns([4, 1])
+    with title_col:
+        st.title(title)
+    with market_col:
+        st.markdown(
+            f'<div class="base-coin-badge"><span>\uae30\uc900</span><strong>{ctx.market_label}</strong></div>',
+            unsafe_allow_html=True,
+        )
     st.caption(
-        f"{subtitle}  ·  기준 **{ctx.market_label}** · {ctx.timeframe} · "
+        f"{subtitle}  ·  {ctx.timeframe} · "
         f"{ctx.period_label} · {len(ctx.rets):,}봉"
     )

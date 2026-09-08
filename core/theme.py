@@ -85,6 +85,28 @@ def style_fig(fig: go.Figure, height: int = 380, legend: bool = True,
 
 CARD_CSS = """
 <style>
+.base-coin-badge {
+    border: 1px solid rgba(237, 161, 0, 0.62);
+    border-radius: 6px;
+    padding: 6px 9px;
+    margin-top: 8px;
+    background: rgba(237, 161, 0, 0.12);
+    text-align: center;
+    line-height: 1.05;
+}
+.base-coin-badge span {
+    display: block;
+    color: rgba(128,128,128,.95);
+    font-size: 11px;
+    font-weight: 650;
+    margin-bottom: 3px;
+}
+.base-coin-badge strong {
+    display: block;
+    color: inherit;
+    font-size: 20px;
+    font-weight: 800;
+}
 .coin-card-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));

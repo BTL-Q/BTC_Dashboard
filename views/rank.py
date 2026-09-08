@@ -54,11 +54,10 @@ st.markdown(
 )
 
 top3 = follow_rank.head(3)
-st.caption(
-    f"{label} 추종 TOP 3: "
-    + " · ".join(f"{short(str(m))} {r['r2']:.0%} / beta {r['beta']:.2f}"
-                 for m, r in top3.iterrows())
-)
+st.caption(f"{label} \ucd94\uc885 TOP 3")
+top3_cols = st.columns(3)
+for column, market in zip(top3_cols, top3.index):
+    column.markdown(f"**{short(str(market))}**")
 
 
 # ======================================================================
